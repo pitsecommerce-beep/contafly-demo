@@ -1,0 +1,13 @@
+pre-commit:
+  parallel: true
+  commands:
+    gitleaks:
+      run: |
+        if command -v gitleaks >/dev/null 2>&1; then
+          gitleaks git --staged --redact --no-banner
+        else
+          echo "gitleaks no está instalado. Instálalo: https://github.com/gitleaks/gitleaks#installing" && exit 1
+        fi
+    biome:
+      glob: "*.{ts,tsx,js,json}"
+      run: pnpm exec biome check --no-errors-on-unmatched {staged_files}

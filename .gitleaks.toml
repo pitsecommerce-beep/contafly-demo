@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Archivos de ejemplo sin secretos"
+paths = ['''\.env\.example$''', '''contafly_assets/.*\.svg$''', '''packages/ui/src/logos/.*\.svg$''']

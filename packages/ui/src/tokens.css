@@ -1,0 +1,72 @@
+/* Tokens de diseño de Contafly. Tema claro por defecto; oscuro por preferencia del sistema o data-tema. */
+:root {
+  --bg: #eae6e0;
+  --surf: #ffffff;
+  --txt-hi: #191614;
+  --txt-mid: #5a544d;
+  --txt-low: #665f59;
+  --brand: #3a63ae;
+  --accion: #1a1613;
+  --accion-txt: #ffffff;
+  --verde: #26694a;
+  --ambar: #7c5a13;
+  --rojo: #9a443a;
+
+  --vidrio: color-mix(in srgb, var(--surf) 72%, transparent);
+  --borde: color-mix(in srgb, var(--txt-hi) 10%, transparent);
+  --sombra: 0 1px 2px rgb(25 22 20 / 0.04), 0 8px 24px rgb(25 22 20 / 0.06);
+  --radio: 18px;
+  --radio-sm: 12px;
+
+  --fuente:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  --dur: 240ms;
+  --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --bg: #121110;
+    --surf: #1d1b19;
+    --txt-hi: #f5f2ed;
+    --txt-mid: #aba59e;
+    --txt-low: #9a948d;
+    --brand: #5b84d4;
+    --accion: #f2ede4;
+    --accion-txt: #121110;
+    --verde: #8fd3af;
+    --ambar: #e5c078;
+    --rojo: #e39a8e;
+    --borde: color-mix(in srgb, var(--txt-hi) 12%, transparent);
+    --sombra: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.35);
+    color-scheme: dark;
+  }
+}
+
+:root[data-tema="oscuro"] {
+  --bg: #121110;
+  --surf: #1d1b19;
+  --txt-hi: #f5f2ed;
+  --txt-mid: #aba59e;
+  --txt-low: #9a948d;
+  --brand: #5b84d4;
+  --accion: #f2ede4;
+  --accion-txt: #121110;
+  --verde: #8fd3af;
+  --ambar: #e5c078;
+  --rojo: #e39a8e;
+  --borde: color-mix(in srgb, var(--txt-hi) 12%, transparent);
+  --sombra: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 0ms;
+  }
+}
+
+.cf-num {
+  font-variant-numeric: tabular-nums;
+}

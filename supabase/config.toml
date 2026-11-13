@@ -1,0 +1,10 @@
+project_id = "contafly-demo"
+
+[api]
+schemas = ["public"]
+
+[db]
+major_version = 15
+
+[storage]
+file_size_limit = "5MiB"
