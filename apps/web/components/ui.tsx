@@ -71,6 +71,13 @@ export function Hoja({
 }) {
   const cerrar = useRef(onCerrar);
   cerrar.current = onCerrar;
+  const hoja = useRef<HTMLDivElement>(null);
+  // Al abrir, el foco entra a la hoja para quien navega con teclado o lector de pantalla
+  useEffect(() => {
+    const previo = document.activeElement as HTMLElement | null;
+    hoja.current?.focus();
+    return () => previo?.focus?.();
+  }, []);
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
       if (e.key === 'Escape') cerrar.current?.();
@@ -89,7 +96,14 @@ export function Hoja({
           onClick={onCerrar}
         />
       )}
-      <div className="hoja" role="dialog" aria-modal="true" aria-label={titulo}>
+      <div
+        className="hoja"
+        role="dialog"
+        aria-modal="true"
+        aria-label={titulo}
+        tabIndex={-1}
+        ref={hoja}
+      >
         <div className="fila" style={{ marginBottom: 12 }}>
           <h2 className="subtitulo">{titulo}</h2>
           {onCerrar && (

@@ -218,6 +218,8 @@ export function Llamada() {
             className="llamada-boton llamada-contestar"
             onClick={() => void contestar()}
             aria-label="Contestar"
+            // biome-ignore lint/a11y/noAutofocus: la llamada entrante debe recibir el foco
+            autoFocus
           >
             ✆
           </button>

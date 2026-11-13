@@ -585,6 +585,9 @@ a {
   --wa-txt: #111b21;
   --wa-meta: #54656f;
   --wa-acento: #1a7f5a;
+  --wa-acento-txt: #ffffff;
+  --wa-aviso-fondo: #fff1cc;
+  --wa-aviso-txt: #3b2f0b;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -596,6 +599,9 @@ a {
     --wa-txt: #e9edef;
     --wa-meta: #aebac1;
     --wa-acento: #4fd1a1;
+    --wa-acento-txt: #0b141a;
+    --wa-aviso-fondo: #2e2a1c;
+    --wa-aviso-txt: #f3e2b0;
   }
 }
 
@@ -655,8 +661,8 @@ a {
   border-radius: 8px;
   font-size: 11.5px;
   text-align: center;
-  background: color-mix(in srgb, #ffd279 40%, var(--wa-suya));
-  color: var(--wa-txt);
+  background: var(--wa-aviso-fondo);
+  color: var(--wa-aviso-txt);
   max-width: 88%;
 }
 
@@ -812,7 +818,7 @@ a {
   border-radius: 50%;
   border: 0;
   background: var(--wa-acento);
-  color: #fff;
+  color: var(--wa-acento-txt);
   font-size: 18px;
   cursor: pointer;
 }
@@ -904,7 +910,7 @@ a {
 }
 
 .llamada-contestar {
-  background: #1fa855;
+  background: #178a45;
   animation: latir 1.2s infinite;
 }
 
@@ -1062,4 +1068,8 @@ a {
   .pantalla-wa {
     display: none;
   }
+}
+
+.hoja:focus {
+  outline: none;
 }
