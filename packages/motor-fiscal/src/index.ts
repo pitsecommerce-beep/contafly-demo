@@ -1,1 +1,11 @@
-export const VERSION_MOTOR = '0.1.0';
+export * from './calculo.js';
+export * from './calendario.js';
+export * from './comparador.js';
+export * from './compuertas.js';
+export * from './dinero.js';
+export * from './parametros/index.js';
+export * from './recomendar.js';
+export * from './retenciones.js';
+export * from './tarifa.js';
+export * from './tipos.js';
+export * from './version.js';

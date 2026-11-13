@@ -17,10 +17,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run",
+    "semillas": "node dist/semillas-cli.js > ../../supabase/seed.sql"
   },
   "devDependencies": {
+    "@types/node": "22.18.8",
     "typescript": "5.9.3",
     "vitest": "3.2.4"
+  },
+  "dependencies": {
+    "@contafly/motor-fiscal": "workspace:*"
   }
 }
