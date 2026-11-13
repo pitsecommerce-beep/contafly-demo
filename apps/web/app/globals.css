@@ -1,0 +1,29 @@
+@import "@contafly/ui/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--txt-hi);
+  font-family: var(--fuente);
+  -webkit-font-smoothing: antialiased;
+}
+
+.franja-demo {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 6px 16px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--txt-mid);
+  background: var(--vidrio);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--borde);
+}
