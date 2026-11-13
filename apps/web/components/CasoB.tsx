@@ -221,6 +221,7 @@ export function CasoB() {
         <Notificacion titulo={aviso.titulo} texto={aviso.texto} onCerrar={() => setAviso(null)} />
       )}
       <main className="pantalla">
+        <h1 className="sr-only">Caso B: Luis, conductor de Uber y DiDi</h1>
         <div className="fila" style={{ marginBottom: 8 }}>
           <Link href="/" className="boton-link">
             ‹ Casos

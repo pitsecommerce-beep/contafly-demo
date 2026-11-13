@@ -47,9 +47,9 @@ export default async function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="es-MX">
       <body>
-        <div className="franja-demo" role="note">
+        <header className="franja-demo">
           Demostración con datos de ejemplo. No se conecta al SAT.
-        </div>
+        </header>
         <ProveedorDemo hoy={hoy} whatsappReal={real}>
           <ProveedorChat>
             <Marco>{children}</Marco>
