@@ -1,64 +1,50 @@
-import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-
-/** Guarda PDFs y devuelve una URL firmada de corta duración para que Twilio la descargue. */
-export interface Almacen {
-  guardarPdf(
-    ruta: string,
-    bytes: Uint8Array,
-    segundos: number,
-  ): Promise<{ ruta: string; url: string }>;
-}
-
-export class AlmacenSupabase implements Almacen {
-  private db: SupabaseClient;
-  constructor(url: string, llaveServicio: string) {
-    this.db = createClient(url, llaveServicio, { auth: { persistSession: false } });
-  }
-  async guardarPdf(ruta: string, bytes: Uint8Array, segundos: number) {
-    const sube = await this.db.storage
-      .from('documentos')
-      .upload(ruta, bytes, { contentType: 'application/pdf', upsert: true });
-    if (sube.error) throw new Error(`No se pudo subir el PDF: ${sube.error.message}`);
-    const firma = await this.db.storage.from('documentos').createSignedUrl(ruta, segundos);
-    if (firma.error || !firma.data)
-      throw new Error(`No se pudo firmar la URL: ${firma.error?.message}`);
-    return { ruta, url: firma.data.signedUrl };
-  }
-}
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import type { SlugPersona } from '@contafly/datos-demo';
 
 /**
- * Sin Supabase: guarda en memoria y sirve desde la propia api con una URL firmada (HMAC)
- * que caduca. Suficiente para la demo; se pierde al reiniciar.
+ * PDFs sin almacenamiento: la URL lleva persona, mes, folio y caducidad, firmados con HMAC.
+ * Al pedirla, la api vuelve a generar el PDF con el motor. Así no se necesita Storage
+ * y las URLs siguen sirviendo aunque el proceso se reinicie (mientras no caduquen).
  */
-export class AlmacenMemoria implements Almacen {
-  archivos = new Map<string, { bytes: Uint8Array; caduca: number }>();
+export interface DocumentoFirmado {
+  persona: SlugPersona;
+  mes: number;
+  folio: string;
+  exp: number;
+}
+
+export class FirmadorDocumentos {
   constructor(
     private baseUrl: string,
     private secreto: string,
     private ahora: () => number = Date.now,
   ) {}
 
-  firmar(id: string, exp: number): string {
-    return createHmac('sha256', this.secreto).update(`${id}.${exp}`).digest('hex');
+  private firma(token: string): string {
+    return createHmac('sha256', this.secreto).update(token).digest('base64url');
   }
 
-  async guardarPdf(ruta: string, bytes: Uint8Array, segundos: number) {
-    const id = randomUUID();
-    const exp = Math.floor(this.ahora() / 1000) + segundos;
-    this.archivos.set(id, { bytes, caduca: exp });
-    return {
-      ruta,
-      url: `${this.baseUrl}/documentos/${id}.pdf?exp=${exp}&firma=${this.firmar(id, exp)}`,
-    };
+  url(doc: Omit<DocumentoFirmado, 'exp'>, segundos: number): { url: string; ruta: string } {
+    const completo: DocumentoFirmado = { ...doc, exp: Math.floor(this.ahora() / 1000) + segundos };
+    const token = Buffer.from(JSON.stringify(completo)).toString('base64url');
+    const ruta = `/documentos/${token}.${this.firma(token)}.pdf`;
+    return { url: `${this.baseUrl}${ruta}`, ruta };
   }
 
-  leer(id: string, exp: number, firma: string): Uint8Array | null {
-    const esperada = Buffer.from(this.firmar(id, exp));
+  /** Devuelve el documento si la firma es válida y no ha caducado. */
+  leer(nombre: string): DocumentoFirmado | null {
+    const m = /^([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)\.pdf$/.exec(nombre);
+    if (!m) return null;
+    const [, token = '', firma = ''] = m;
+    const esperada = Buffer.from(this.firma(token));
     const dada = Buffer.from(firma);
     if (esperada.length !== dada.length || !timingSafeEqual(esperada, dada)) return null;
-    if (exp < Math.floor(this.ahora() / 1000)) return null;
-    const a = this.archivos.get(id);
-    return a && a.caduca === exp ? a.bytes : null;
+    try {
+      const doc = JSON.parse(Buffer.from(token, 'base64url').toString()) as DocumentoFirmado;
+      if (doc.exp < Math.floor(this.ahora() / 1000)) return null;
+      return doc;
+    } catch {
+      return null;
+    }
   }
 }

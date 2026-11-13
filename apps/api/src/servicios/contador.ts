@@ -5,7 +5,7 @@ import { datosAcuseDesdeMotor, generarAcuse } from '@contafly/documentos';
 import { fechaVencimiento, formatoMxn, nombreMes } from '@contafly/motor-fiscal';
 import type { Config } from '../config.js';
 import { enmascarar } from '../privacidad.js';
-import type { Almacen } from './almacen.js';
+import type { DocumentoFirmado, FirmadorDocumentos } from './almacen.js';
 import type { Llamador } from './llamadas.js';
 import type { Repositorio, Sesion } from './repositorio.js';
 import type { EnviadorWhatsApp } from './whatsapp.js';
@@ -15,7 +15,7 @@ export type TipoRecordatorio = 'dia10' | 'dia15' | 'dia17';
 export interface Dependencias {
   config: Config;
   repo: Repositorio;
-  almacen: Almacen;
+  documentos: FirmadorDocumentos;
   whatsapp: EnviadorWhatsApp;
   llamador: Llamador;
   /** Cliente de Anthropic; null si no hay llave (respuestas de respaldo) */
@@ -79,23 +79,29 @@ export class Contador {
     return r;
   }
 
-  /** Genera el PDF de demostración del mes, lo guarda y lo manda por WhatsApp. */
+  /** Genera el PDF de demostración a partir del motor. */
+  async pdf(doc: DocumentoFirmado): Promise<Uint8Array> {
+    const persona = PERSONAS[doc.persona];
+    const m = resumenMeses(persona, this.hoy()).find((x) => x.mes === doc.mes);
+    if (!m) throw new Error(`Sin datos para ${nombreMes(doc.mes)}`);
+    return generarAcuse(
+      datosAcuseDesdeMotor(persona, m.resultado, {
+        presentadoEn: `${this.hoy()}T18:42`,
+        folio: doc.folio,
+        ...(this.d.config.publicWebUrl ? { urlQr: this.d.config.publicWebUrl } : {}),
+      }),
+    );
+  }
+
+  /** Manda por WhatsApp el PDF de demostración del mes con una URL firmada de corta duración. */
   async enviarLineaCaptura(sesion: Sesion, mes: number, conTexto = true) {
     await this.cupo(sesion, 'documentos');
     const m = this.resultado(sesion, mes);
-    const persona = PERSONAS[sesion.persona];
-    const datos = datosAcuseDesdeMotor(persona, m.resultado, {
-      presentadoEn: `${this.hoy()}T18:42`,
-      folio: `${sesion.id}-${m.anio}-${mes}`,
-      ...(this.d.config.publicWebUrl ? { urlQr: this.d.config.publicWebUrl } : {}),
-    });
-    const pdf = await generarAcuse(datos);
-    const { ruta, url } = await this.d.almacen.guardarPdf(
-      `${sesion.id}/acuse-${m.anio}-${String(mes).padStart(2, '0')}.pdf`,
-      pdf,
+    const { url, ruta } = this.d.documentos.url(
+      { persona: sesion.persona, mes, folio: `${sesion.id}-${m.anio}-${mes}` },
       DURACION_URL_S,
     );
-    await this.d.repo.guardarDocumento(sesion.id, 'linea_captura', ruta);
+    await this.d.repo.guardarDocumento(sesion.id, 'linea_captura', ruta.slice(0, 120));
     const pie = `Línea de captura de ${nombreMes(mes)} (demostración, no válida para pago)`;
     const r = await this.d.whatsapp.enviar({
       para: sesion.telefono,

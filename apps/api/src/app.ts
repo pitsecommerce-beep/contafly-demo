@@ -4,7 +4,6 @@ import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import twilio from 'twilio';
 import type { Config } from './config.js';
 import { deWhatsApp, enmascarar, esE164, normalizarMx } from './privacidad.js';
-import { AlmacenMemoria } from './servicios/almacen.js';
 import {
   Contador,
   type Dependencias,
@@ -40,6 +39,7 @@ export function crearApp(op: OpcionesApp): FastifyInstance {
       ],
     },
     trustProxy: true,
+    maxParamLength: 1000,
   });
   const { config, repo } = op;
   const contador = new Contador(op);
@@ -61,22 +61,17 @@ export function crearApp(op: OpcionesApp): FastifyInstance {
     contador: Boolean(op.anthropic),
   }));
 
-  // Documentos firmados cuando no hay Supabase
-  if (op.almacen instanceof AlmacenMemoria) {
-    const almacen = op.almacen;
-    app.get<{ Params: { id: string }; Querystring: { exp?: string; firma?: string } }>(
-      '/documentos/:id',
-      async (req, reply) => {
-        const id = req.params.id.replace(/\.pdf$/, '');
-        const bytes = almacen.leer(id, Number(req.query.exp), String(req.query.firma ?? ''));
-        if (!bytes) return reply.code(404).send({ ok: false });
-        return reply
-          .header('content-type', 'application/pdf')
-          .header('cache-control', 'no-store')
-          .send(Buffer.from(bytes));
-      },
-    );
-  }
+  // PDFs firmados: se regeneran con el motor al pedirlos
+  app.get<{ Params: { nombre: string } }>('/documentos/:nombre', async (req, reply) => {
+    const doc = op.documentos.leer(req.params.nombre);
+    if (!doc) return reply.code(404).send({ ok: false });
+    const bytes = await contador.pdf(doc);
+    return reply
+      .header('content-type', 'application/pdf')
+      .header('content-disposition', `inline; filename="linea-captura-demo-${doc.mes}.pdf"`)
+      .header('cache-control', 'no-store')
+      .send(Buffer.from(bytes));
+  });
 
   // Webhook entrante de WhatsApp ----------------------------------------------
   app.post('/twilio/whatsapp', async (req, reply) => {

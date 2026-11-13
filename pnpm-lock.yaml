@@ -69,6 +69,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@anthropic-ai/sdk':
+        specifier: 1.8.0
+        version: 1.8.0
+      '@contafly/agente':
+        specifier: workspace:*
+        version: link:../../packages/agente
       '@contafly/datos-demo':
         specifier: workspace:*
         version: link:../../packages/datos-demo

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { crearApp } from '../src/app.js';
 import { leerConfig } from '../src/config.js';
 import { correrRecordatorios } from '../src/recordatorios.js';
-import { AlmacenMemoria } from '../src/servicios/almacen.js';
+import { FirmadorDocumentos } from '../src/servicios/almacen.js';
 import { Contador } from '../src/servicios/contador.js';
 import { LlamadorNoDisponible } from '../src/servicios/llamadas.js';
 import { RepositorioMemoria } from '../src/servicios/repositorio.js';
@@ -30,13 +30,13 @@ function preparar(
     LIMITE_MENSAJES_DIA: String(opciones.limiteMensajes ?? 60),
   });
   const repo = new RepositorioMemoria();
-  const almacen = new AlmacenMemoria(BASE, 'secreto');
+  const documentos = new FirmadorDocumentos(BASE, 'secreto');
   const whatsapp = new EnviadorSimulado();
   const tareas: Promise<unknown>[] = [];
   const deps = {
     config,
     repo,
-    almacen,
+    documentos,
     whatsapp,
     llamador: new LlamadorNoDisponible(),
     anthropic: opciones.anthropic === undefined ? null : opciones.anthropic,
@@ -49,7 +49,7 @@ function preparar(
     segundoPlano: (p) => tareas.push(p),
   });
   const esperarFondo = () => Promise.all(tareas);
-  return { app, repo, almacen, whatsapp, esperarFondo, deps };
+  return { app, repo, documentos, whatsapp, esperarFondo, deps };
 }
 
 function firmar(url: string, params: Record<string, string>) {
@@ -151,9 +151,7 @@ describe('rutas de la demo', () => {
     expect(r.statusCode).toBe(200);
     await ctx.esperarFondo();
     const [pdf, texto] = ctx.whatsapp.enviados;
-    expect(pdf?.mediaUrl).toMatch(
-      /^https:\/\/api\.demo\.test\/documentos\/.+\.pdf\?exp=\d+&firma=[0-9a-f]+$/,
-    );
+    expect(pdf?.mediaUrl).toMatch(/^https:\/\/api\.demo\.test\/documentos\/[\w-]+\.[\w-]+\.pdf$/);
     expect(texto?.cuerpo).toBe(
       'Listo, presentamos tu declaración de octubre. Aquí está tu línea de captura por $2,538.45. Págala en tu banco cuando quieras, antes del 17 de noviembre.',
     );
@@ -164,8 +162,12 @@ describe('rutas de la demo', () => {
     expect(descarga.headers['content-type']).toBe('application/pdf');
     expect(descarga.rawPayload.subarray(0, 4).toString()).toBe('%PDF');
     expect(
-      (await ctx.app.inject({ method: 'GET', url: ruta.replace(/firma=[0-9a-f]+/, 'firma=00') }))
-        .statusCode,
+      (
+        await ctx.app.inject({
+          method: 'GET',
+          url: ruta.replace(/\.[\w-]+\.pdf$/, '.manipulada.pdf'),
+        })
+      ).statusCode,
     ).toBe(404);
   });
 
@@ -251,19 +253,16 @@ describe('recordatorios programados', () => {
   });
 });
 
-describe('almacén en memoria', () => {
-  it('las URLs caducan', async () => {
+describe('documentos firmados', () => {
+  it('caducan y no aceptan cambios', () => {
     let ahora = 1_000_000_000_000;
-    const a = new AlmacenMemoria(BASE, 's', () => ahora);
-    const { url } = await a.guardarPdf('x.pdf', new Uint8Array([1]), 60);
-    const u = new URL(url);
-    const id = u.pathname.split('/').pop()?.replace('.pdf', '') ?? '';
-    expect(
-      a.leer(id, Number(u.searchParams.get('exp')), u.searchParams.get('firma') ?? ''),
-    ).not.toBeNull();
+    const f = new FirmadorDocumentos(BASE, 's', () => ahora);
+    const { ruta } = f.url({ persona: 'luis', mes: 10, folio: 'x' }, 60);
+    const nombre = ruta.split('/').pop() ?? '';
+    expect(f.leer(nombre)).toMatchObject({ persona: 'luis', mes: 10 });
+    expect(f.leer(nombre.replace(/^[\w-]/, 'Z'))).toBeNull();
+    expect(f.leer('basura')).toBeNull();
     ahora += 61_000;
-    expect(
-      a.leer(id, Number(u.searchParams.get('exp')), u.searchParams.get('firma') ?? ''),
-    ).toBeNull();
+    expect(f.leer(nombre)).toBeNull();
   });
 });

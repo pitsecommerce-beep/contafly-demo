@@ -108,161 +108,102 @@ export class RepositorioMemoria implements Repositorio {
   }
 }
 
-/** Implementación con Supabase. Usa la llave de servicio, solo del lado del servidor. */
-export class RepositorioSupabase implements Repositorio {
+/**
+ * Supabase con la llave anon. Escribe por funciones RPC (ver la migración de funciones anon)
+ * y nunca lee conversaciones de la base: el historial reciente y la lista de sesiones
+ * viven en memoria del proceso.
+ */
+export class RepositorioSupabaseAnon implements Repositorio {
   private db: SupabaseClient;
-  private personas = new Map<SlugPersona, string>();
+  private cache = new RepositorioMemoria();
 
-  constructor(url: string, llaveServicio: string) {
-    this.db = createClient(url, llaveServicio, { auth: { persistSession: false } });
+  constructor(url: string, llaveAnon: string) {
+    this.db = createClient(url, llaveAnon, { auth: { persistSession: false } });
   }
 
-  private async personaId(slug: SlugPersona): Promise<string> {
-    const c = this.personas.get(slug);
-    if (c) return c;
-    const { data, error } = await this.db
-      .from('personas_demo')
-      .select('id')
-      .eq('slug', slug)
-      .single();
-    if (error || !data) throw new Error(`Persona ${slug} no encontrada`);
-    this.personas.set(slug, data.id as string);
-    return data.id as string;
+  private async rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
+    const { data, error } = await this.db.rpc(fn, args);
+    if (error) throw new Error(`Supabase ${fn}: ${error.message}`);
+    return data as T;
   }
 
-  private async slugDe(personaId: string | null): Promise<SlugPersona> {
-    for (const [slug, id] of this.personas) if (id === personaId) return slug;
-    const { data } = await this.db
-      .from('personas_demo')
-      .select('slug')
-      .eq('id', personaId)
-      .single();
-    return (data?.slug as SlugPersona | undefined) ?? 'luis';
-  }
-
-  private async aSesion(row: Record<string, unknown>): Promise<Sesion> {
-    return {
-      id: row.id as string,
-      telefono: row.telefono_e164 as string,
-      persona: await this.slugDe(row.persona_id as string | null),
-      consentimientoAt: row.consentimiento_at as string,
-    };
-  }
-
-  async crearOActualizarSesion(telefono: string, persona: SlugPersona) {
-    const personaId = await this.personaId(persona);
-    const previa = await this.sesionPorTelefono(telefono);
-    if (previa) {
-      await this.db.from('sesiones_demo').update({ persona_id: personaId }).eq('id', previa.id);
-      return { ...previa, persona };
-    }
-    const { data, error } = await this.db
-      .from('sesiones_demo')
-      .insert({
-        telefono_e164: telefono,
-        persona_id: personaId,
-        consentimiento_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-    if (error || !data) throw new Error(`No se pudo crear la sesión: ${error?.message}`);
-    return this.aSesion(data);
+  async crearOActualizarSesion(telefono: string, persona: SlugPersona): Promise<Sesion> {
+    const id = await this.rpc<string>('demo_conectar', {
+      p_telefono: telefono,
+      p_persona: persona,
+    });
+    const s: Sesion = { id, telefono, persona, consentimientoAt: new Date().toISOString() };
+    this.cache.sesiones.set(telefono, s);
+    return s;
   }
 
   async sesionPorTelefono(telefono: string) {
-    const { data } = await this.db
-      .from('sesiones_demo')
-      .select()
-      .eq('telefono_e164', telefono)
-      .is('borrado_at', null)
-      .order('creado_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data ? this.aSesion(data) : null;
+    const enCache = await this.cache.sesionPorTelefono(telefono);
+    if (enCache) return enCache;
+    const filas = await this.rpc<Array<{ id: string; persona: SlugPersona }>>('demo_sesion', {
+      p_telefono: telefono,
+    });
+    const f = filas?.[0];
+    if (!f) return null;
+    const s: Sesion = { id: f.id, telefono, persona: f.persona, consentimientoAt: '' };
+    this.cache.sesiones.set(telefono, s);
+    return s;
   }
 
   async borrarSesion(telefono: string) {
-    const { data } = await this.db.from('sesiones_demo').select('id').eq('telefono_e164', telefono);
-    const ids = (data ?? []).map((r) => r.id as string);
-    if (ids.length === 0) return;
-    const { data: docs } = await this.db
-      .from('documentos')
-      .select('ruta_storage')
-      .in('sesion_id', ids);
-    const rutas = (docs ?? []).map((d) => d.ruta_storage as string);
-    if (rutas.length) await this.db.storage.from('documentos').remove(rutas);
-    // Las tablas hijas se borran en cascada
-    await this.db.from('sesiones_demo').delete().in('id', ids);
+    const s = await this.sesionPorTelefono(telefono);
+    if (s) await this.rpc('demo_borrar', { p_sesion: s.id });
+    await this.cache.borrarSesion(telefono);
   }
 
   async sesionesActivas() {
-    const { data } = await this.db
-      .from('sesiones_demo')
-      .select()
-      .is('borrado_at', null)
-      .not('telefono_e164', 'is', null);
-    return Promise.all((data ?? []).map((r) => this.aSesion(r)));
+    return this.cache.sesionesActivas();
   }
 
   async guardarMensaje(sesionId: string, m: MensajeGuardado & { twilioSid?: string | null }) {
-    await this.db.from('mensajes').insert({
-      sesion_id: sesionId,
-      direccion: m.direccion,
-      cuerpo: m.cuerpo,
-      twilio_sid: m.twilioSid ?? null,
+    await this.cache.guardarMensaje(sesionId, m);
+    await this.rpc('demo_guardar_mensaje', {
+      p_sesion: sesionId,
+      p_direccion: m.direccion,
+      p_cuerpo: m.cuerpo,
+      p_sid: m.twilioSid ?? null,
     });
   }
 
   async historial(sesionId: string, limite: number) {
-    const { data } = await this.db
-      .from('mensajes')
-      .select('direccion, cuerpo')
-      .eq('sesion_id', sesionId)
-      .order('creado_at', { ascending: false })
-      .limit(limite);
-    return (data ?? [])
-      .reverse()
-      .map((r) => ({ direccion: r.direccion as 'in' | 'out', cuerpo: (r.cuerpo as string) ?? '' }));
+    return this.cache.historial(sesionId, limite);
   }
 
   async guardarDocumento(sesionId: string, tipo: 'acuse' | 'linea_captura', ruta: string) {
-    await this.db.from('documentos').insert({ sesion_id: sesionId, tipo, ruta_storage: ruta });
+    await this.rpc('demo_guardar_documento', { p_sesion: sesionId, p_tipo: tipo, p_ruta: ruta });
   }
 
   async registrarRecordatorio(sesionId: string, tipo: 'dia10' | 'dia15' | 'dia17', fecha: string) {
-    const { error } = await this.db.from('recordatorios').insert({
-      sesion_id: sesionId,
-      tipo,
-      programado_para: `${fecha}T16:00:00Z`,
-      enviado_at: new Date().toISOString(),
+    return this.rpc<boolean>('demo_registrar_recordatorio', {
+      p_sesion: sesionId,
+      p_tipo: tipo,
+      p_fecha: fecha,
     });
-    return !error;
   }
 
   async registrarLlamada(sesionId: string, twilioSid: string | null, estado: string) {
-    await this.db.from('llamadas').insert({ sesion_id: sesionId, twilio_sid: twilioSid, estado });
+    await this.rpc('demo_registrar_llamada', {
+      p_sesion: sesionId,
+      p_sid: twilioSid,
+      p_estado: estado,
+    });
   }
 
   async consumirCupo(telefono: string, canal: Canal, fecha: string, maximo: number) {
-    const telefonoHash = hashTelefono(telefono);
-    const columna = canal === 'llamadas' ? 'llamadas' : 'mensajes';
-    const { data } = await this.db
-      .from('limites_uso')
-      .select()
-      .eq('telefono_hash', telefonoHash)
-      .eq('fecha', fecha)
-      .maybeSingle();
-    const actual = ((data?.[columna] as number | undefined) ?? 0) + 1;
-    await this.db
-      .from('limites_uso')
-      .upsert(
-        { telefono_hash: telefonoHash, fecha, ...(data ?? {}), [columna]: actual },
-        { onConflict: 'telefono_hash,fecha' },
-      );
-    return actual <= maximo;
+    return this.rpc<boolean>('demo_consumir_cupo', {
+      p_hash: hashTelefono(telefono),
+      p_canal: canal,
+      p_fecha: fecha,
+      p_maximo: maximo,
+    });
   }
 
   async bitacora(sesionId: string | null, evento: string, detalle: Record<string, unknown> = {}) {
-    await this.db.from('bitacora').insert({ sesion_id: sesionId, evento, detalle });
+    await this.rpc('demo_bitacora', { p_sesion: sesionId, p_evento: evento, p_detalle: detalle });
   }
 }

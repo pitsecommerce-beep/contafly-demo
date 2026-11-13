@@ -1,10 +1,10 @@
 import { crearApp } from './app.js';
 import { leerConfig } from './config.js';
 import { programarRecordatorios } from './recordatorios.js';
-import { AlmacenMemoria, AlmacenSupabase } from './servicios/almacen.js';
+import { FirmadorDocumentos } from './servicios/almacen.js';
 import { Contador, clienteAnthropic } from './servicios/contador.js';
 import { LlamadorNoDisponible } from './servicios/llamadas.js';
-import { RepositorioMemoria, RepositorioSupabase } from './servicios/repositorio.js';
+import { RepositorioMemoria, RepositorioSupabaseAnon } from './servicios/repositorio.js';
 import { EnviadorSimulado, EnviadorTwilio } from './servicios/whatsapp.js';
 
 const config = leerConfig();
@@ -12,11 +12,9 @@ const puerto = Number(process.env.PORT ?? 4000);
 const baseUrl = config.publicApiUrl ?? `http://localhost:${puerto}`;
 
 const repo = config.supabase
-  ? new RepositorioSupabase(config.supabase.url, config.supabase.serviceRoleKey)
+  ? new RepositorioSupabaseAnon(config.supabase.url, config.supabase.anonKey)
   : new RepositorioMemoria();
-const almacen = config.supabase
-  ? new AlmacenSupabase(config.supabase.url, config.supabase.serviceRoleKey)
-  : new AlmacenMemoria(baseUrl, config.secretoUrls);
+const documentos = new FirmadorDocumentos(baseUrl, config.secretoUrls);
 const whatsapp = config.twilio
   ? new EnviadorTwilio(
       config.twilio.accountSid,
@@ -28,7 +26,7 @@ const whatsapp = config.twilio
 const deps = {
   config,
   repo,
-  almacen,
+  documentos,
   whatsapp,
   llamador: new LlamadorNoDisponible(),
   anthropic: clienteAnthropic(config),

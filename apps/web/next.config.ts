@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 const config: NextConfig = {
   output: 'standalone',
   transpilePackages: ['@contafly/ui'],
-  serverExternalPackages: ['bwip-js', 'pdf-lib'],
+  serverExternalPackages: ['bwip-js', 'pdf-lib', '@anthropic-ai/sdk'],
   poweredByHeader: false,
   webpack(cfg) {
     // Los paquetes usan imports ESM con extensión .js que apuntan a archivos .ts

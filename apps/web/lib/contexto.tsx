@@ -10,19 +10,29 @@ export interface Narracion {
 
 interface ContextoDemo {
   hoy: string;
+  /** true solo si la api tiene Twilio configurado; si no, todo se simula en la web */
+  whatsappReal: boolean;
   narracion: Narracion;
   narrar: (n: Narracion) => void;
 }
 
 const Ctx = createContext<ContextoDemo | null>(null);
 
-export function ProveedorDemo({ hoy, children }: { hoy: string; children: ReactNode }) {
+export function ProveedorDemo({
+  hoy,
+  whatsappReal,
+  children,
+}: {
+  hoy: string;
+  whatsappReal: boolean;
+  children: ReactNode;
+}) {
   const [narracion, narrar] = useState<Narracion>({
     paso: 'Inicio',
     titulo: 'Contafly',
     texto: ['Elige un caso para empezar.'],
   });
-  return <Ctx.Provider value={{ hoy, narracion, narrar }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ hoy, whatsappReal, narracion, narrar }}>{children}</Ctx.Provider>;
 }
 
 export function useDemo(): ContextoDemo {

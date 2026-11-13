@@ -11,6 +11,7 @@ import {
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { accionDemo } from '../lib/api';
+import { useChat, usePersonaChat } from '../lib/chat';
 import { type Narracion, useDemo, useNarracion } from '../lib/contexto';
 import { leerSesion } from '../lib/sesion';
 import { Barra, Chip, Encabezado, Notificacion, Renglon, type Tono } from './ui';
@@ -112,6 +113,7 @@ const NARRACION: Record<Paso, Narracion> = {
 
 export function CasoA() {
   const { hoy } = useDemo();
+  usePersonaChat('mariana');
   const [paso, setPaso] = useState<Paso>('diagnostico');
   useNarracion(NARRACION[paso]);
   const ir = (p: Paso) => setPaso(p);
@@ -414,6 +416,8 @@ function Plan({
   const suma = meses.reduce((t, m) => t + m.resultado.totalCent, 0);
   const [progreso, setProgreso] = useState(0);
   const [aviso, setAviso] = useState<string | null>(null);
+  const { whatsappReal } = useDemo();
+  const chat = useChat();
   const etapas = [
     'Un contador revisa tus meses',
     ...meses.map((m) => `Presentando ${m.nombreMes}`),
@@ -430,6 +434,16 @@ function Plan({
     const fin = window.setTimeout(
       () => {
         exito.current();
+        const textoFinal = `Listo, ya estás al corriente. Te mandé ${meses.length} líneas de captura por ${f(suma)} en total, más recargos y actualización. Págalas en tu banco; la de octubre vence el 17 de noviembre.`;
+        if (!whatsappReal) {
+          // Sin Twilio: los PDFs y el mensaje llegan al WhatsApp simulado de la web
+          void chat.recibir([
+            ...meses.map((m) => ({ tipo: 'pdf' as const, mes: m.mes })),
+            { tipo: 'texto', texto: textoFinal },
+          ]);
+          setAviso(textoFinal);
+          return;
+        }
         const s = leerSesion();
         void accionDemo('presentar', {
           persona: 'mariana',
@@ -438,11 +452,9 @@ function Plan({
           sesionId: s?.sesionId,
         }).then((res) =>
           setAviso(
-            res.simulado
-              ? `(Simulado) Listo, ya estás al corriente. Te mandamos ${meses.length} líneas de captura por ${f(suma)} en total, más recargos y actualización.`
-              : res.ok
-                ? 'Revisa tu WhatsApp: ahí están tus líneas de captura.'
-                : (res.mensaje ??
+            res.ok
+              ? 'Revisa tu WhatsApp: ahí están tus líneas de captura.'
+              : (res.mensaje ??
                   'Conecta tu WhatsApp en el inicio para recibir tus líneas de captura.'),
           ),
         );
@@ -459,11 +471,7 @@ function Plan({
     return (
       <div className="pila entrada">
         {aviso && (
-          <Notificacion
-            titulo="Contafly en WhatsApp"
-            texto={aviso}
-            onCerrar={() => setAviso(null)}
-          />
+          <Notificacion titulo="WhatsApp, Contafly" texto={aviso} onCerrar={() => setAviso(null)} />
         )}
         <div style={{ textAlign: 'center' }}>
           <div
