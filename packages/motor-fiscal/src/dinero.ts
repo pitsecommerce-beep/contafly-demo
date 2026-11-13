@@ -17,7 +17,7 @@ export function centavos(pesos: string): Centavos {
   const m = /^(-)?(\d+)(?:\.(\d+))?$/.exec(pesos.trim().replaceAll(',', ''));
   if (!m) throw new RangeError(`Monto inválido: ${pesos}`);
   const [, signo, enteros = '0', decimales = ''] = m;
-  const dec = (decimales + '000').slice(0, 3);
+  const dec = `${decimales}000`.slice(0, 3);
   let cent = Number(enteros) * 100 + Number(dec.slice(0, 2));
   if (Number(dec[2]) >= 5) cent += 1;
   verificarEntero(cent, 'monto');
