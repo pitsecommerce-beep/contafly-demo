@@ -574,3 +574,492 @@ a {
 .hoja {
   position: relative;
 }
+
+/* WhatsApp simulado ------------------------------------------------------- */
+:root {
+  --wa-fondo: #efe7dd;
+  --wa-cabecera: #1f3a33;
+  --wa-cabecera-txt: #ffffff;
+  --wa-mia: #d9fdd3;
+  --wa-suya: #ffffff;
+  --wa-txt: #111b21;
+  --wa-meta: #54656f;
+  --wa-acento: #1a7f5a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --wa-fondo: #0b141a;
+    --wa-cabecera: #202c33;
+    --wa-mia: #005c4b;
+    --wa-suya: #202c33;
+    --wa-txt: #e9edef;
+    --wa-meta: #aebac1;
+    --wa-acento: #4fd1a1;
+  }
+}
+
+.wa {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--wa-fondo);
+  color: var(--wa-txt);
+  overflow: hidden;
+}
+
+.wa-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--wa-cabecera);
+  color: var(--wa-cabecera-txt);
+}
+
+.wa-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
+}
+
+.wa-contacto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.wa-contacto span {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.wa-icono-boton {
+  background: none;
+  border: 0;
+  color: inherit;
+  font-size: 22px;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.wa-aviso {
+  margin: 8px auto 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  text-align: center;
+  background: color-mix(in srgb, #ffd279 40%, var(--wa-suya));
+  color: var(--wa-txt);
+  max-width: 88%;
+}
+
+.wa-mensajes {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wa-burbuja {
+  max-width: 82%;
+  padding: 7px 10px 18px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  line-height: 1.4;
+  position: relative;
+  box-shadow: 0 1px 0.5px rgb(0 0 0 / 0.13);
+}
+
+.wa-mia {
+  align-self: flex-end;
+  background: var(--wa-mia);
+  border-top-right-radius: 2px;
+}
+
+.wa-suya {
+  align-self: flex-start;
+  background: var(--wa-suya);
+  border-top-left-radius: 2px;
+}
+
+.wa-hora {
+  position: absolute;
+  right: 8px;
+  bottom: 3px;
+  font-size: 10.5px;
+  color: var(--wa-meta);
+}
+
+.wa-pdf {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+  padding: 4px 0;
+}
+
+.wa-pdf-icono {
+  flex: none;
+  width: 40px;
+  height: 46px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #c4473a;
+}
+
+.wa-meta-pdf {
+  display: block;
+  font-size: 12px;
+  color: var(--wa-meta);
+}
+
+.wa-llamada-registro {
+  color: var(--wa-meta);
+}
+
+.wa-escribiendo {
+  display: flex;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.wa-escribiendo span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--wa-meta);
+  animation: punto 1.2s infinite ease-in-out;
+}
+
+.wa-escribiendo span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.wa-escribiendo span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes punto {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.wa-sugerencias {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px 10px;
+  scrollbar-width: none;
+}
+
+.wa-chip {
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--wa-acento) 50%, transparent);
+  color: var(--wa-acento);
+  background: var(--wa-suya);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.wa-chip:disabled {
+  opacity: 0.5;
+}
+
+.wa-entrada {
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+}
+
+.wa-entrada input {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 22px;
+  border: 0;
+  padding: 0 16px;
+  background: var(--wa-suya);
+  color: var(--wa-txt);
+}
+
+.wa-enviar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--wa-acento);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.wa-enviar:disabled {
+  opacity: 0.5;
+}
+
+/* Llamada simulada */
+.llamada {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 16px 24px;
+  background: linear-gradient(180deg, #1f3a33, #0e1a17);
+  color: #fff;
+  animation: aparecer var(--dur) var(--curva);
+}
+
+.llamada-arriba {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.llamada-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.llamada-nombre {
+  font-size: 20px;
+}
+
+.llamada-estado {
+  font-size: 14px;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.llamada-transcripcion {
+  flex: 1;
+  width: 100%;
+  overflow-y: auto;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.llamada-transcripcion p {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  max-width: 90%;
+}
+
+.llamada-contador {
+  background: rgb(255 255 255 / 0.12);
+  align-self: flex-start;
+}
+
+.llamada-yo {
+  background: rgb(79 209 161 / 0.25);
+  align-self: flex-end;
+}
+
+.llamada-botones {
+  margin-top: auto;
+  display: flex;
+  gap: 72px;
+}
+
+.llamada-boton {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 0;
+  color: #fff;
+  font-size: 26px;
+  cursor: pointer;
+}
+
+.llamada-contestar {
+  background: #1fa855;
+  animation: latir 1.2s infinite;
+}
+
+.llamada-colgar {
+  background: #d93a2f;
+}
+
+@keyframes latir {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.llamada-controles {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.llamada-controles .boton {
+  background: #fff;
+  color: #10201b;
+}
+
+.llamada-texto {
+  width: 100%;
+}
+
+.llamada-texto input {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 22px;
+  border: 0;
+  padding: 0 16px;
+  background: rgb(255 255 255 / 0.14);
+  color: #fff;
+}
+
+.llamada-texto input::placeholder {
+  color: rgb(255 255 255 / 0.7);
+}
+
+/* Columna derecha en computadora y botón flotante en móvil */
+.lateral {
+  display: none;
+}
+
+.ventana-wa {
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra);
+}
+
+.ventana-barra {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--surf);
+  font-size: 12px;
+  color: var(--txt-mid);
+  border-bottom: 1px solid var(--borde);
+}
+
+.ventana-barra i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--borde);
+}
+
+.ventana-wa .wa {
+  flex: 1;
+}
+
+.flotante-wa {
+  position: fixed;
+  right: 16px;
+  bottom: 88px;
+  z-index: 55;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 0;
+  background: #1a7f5a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+
+.flotante-wa .insignia {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--rojo);
+  color: #fff;
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+}
+
+.pantalla-wa {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  display: flex;
+  flex-direction: column;
+  animation: subir var(--dur) var(--curva);
+}
+
+@media (min-width: 1024px) {
+  .escenario.con-wa {
+    grid-template-columns: 390px minmax(0, 420px);
+    align-items: start;
+  }
+
+  .con-wa .panel {
+    display: none;
+  }
+
+  .con-wa .lateral {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .lateral .panel-tarjeta {
+    padding: 16px 18px;
+  }
+
+  .lateral .panel-tarjeta h2 {
+    font-size: 17px;
+    margin: 4px 0 6px;
+  }
+
+  .lateral .panel-tarjeta p {
+    font-size: 14px;
+    margin: 0 0 6px;
+    color: var(--txt-mid);
+  }
+
+  .flotante-wa,
+  .pantalla-wa {
+    display: none;
+  }
+}

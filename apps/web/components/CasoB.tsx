@@ -5,6 +5,7 @@ import { formatoMxn, nombreMes, textoVencimiento } from '@contafly/motor-fiscal'
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { accionDemo } from '../lib/api';
+import { useChat, usePersonaChat } from '../lib/chat';
 import { type Narracion, useDemo, useNarracion } from '../lib/contexto';
 import { leerSesion } from '../lib/sesion';
 import { Barra, Chip, Hoja, Notificacion, Renglon } from './ui';
@@ -17,7 +18,9 @@ const PASOS_PROGRESO = ['Conectando', 'Capturando', 'Presentando'];
 const f = formatoMxn;
 
 export function CasoB() {
-  const { hoy } = useDemo();
+  const { hoy, whatsappReal } = useDemo();
+  const chat = useChat();
+  usePersonaChat('luis');
   const meses = useMemo(() => resumenMeses(LUIS, hoy), [hoy]);
   const octubre = meses.find((m) => m.mes === 10);
   const periodo = LUIS.periodos.find((p) => p.mes === 10);
@@ -120,6 +123,13 @@ export function CasoB() {
   // biome-ignore lint/style/noNonNullAssertion: todas las claves existen
   useNarracion(narraciones[claveNarracion]!);
 
+  const texto = `Listo, presentamos tu declaración de octubre. Aquí está tu línea de captura por ${totalTxt}. Págala en tu banco cuando quieras, antes del 17 de noviembre.`;
+
+  /** Muestra en el teléfono la notificación de WhatsApp, como llegaría al celular. */
+  function notificar(t: string) {
+    despues(1400, () => setAviso({ titulo: 'WhatsApp, Contafly', texto: t }));
+  }
+
   function presentar() {
     setFlujo('progreso');
     setProgreso(0);
@@ -129,25 +139,44 @@ export function CasoB() {
     despues(2400, () => {
       setPresentado(true);
       setFlujo('exito');
+      if (!whatsappReal) {
+        // Sin Twilio: el PDF y el mensaje llegan al WhatsApp simulado de la web
+        void chat.recibir([
+          { tipo: 'pdf', mes: 10 },
+          { tipo: 'texto', texto },
+        ]);
+        notificar(texto);
+        return;
+      }
       const sesion = leerSesion();
       void accionDemo('presentar', {
         persona: 'luis',
         mes: 10,
         telefono: sesion?.telefono,
         sesionId: sesion?.sesionId,
-      }).then((res) => {
-        // Sin api configurada mostramos el mensaje en pantalla, como llegaría a WhatsApp.
-        despues(res.simulado ? 900 : 0, () =>
-          setAviso({
-            titulo: res.simulado ? 'WhatsApp (simulado)' : 'Contafly en WhatsApp',
-            texto: `Listo, presentamos tu declaración de octubre. Aquí está tu línea de captura por ${totalTxt}. Págala en tu banco cuando quieras, antes del 17 de noviembre.`,
-          }),
-        );
-      });
+      }).then((res) =>
+        setAviso(
+          res.ok
+            ? {
+                titulo: 'Te llegó a WhatsApp',
+                texto: 'Revisa tu WhatsApp: ahí están tu PDF y tu línea de captura.',
+              }
+            : {
+                titulo: 'No llegó a tu WhatsApp',
+                texto:
+                  res.mensaje ??
+                  'Conecta tu WhatsApp en el inicio para recibir la línea de captura.',
+              },
+        ),
+      );
     });
   }
 
   async function llamar() {
+    if (!whatsappReal) {
+      chat.llamar();
+      return;
+    }
     const sesion = leerSesion();
     const res = await accionDemo('llamar', {
       persona: 'luis',
@@ -155,29 +184,23 @@ export function CasoB() {
       sesionId: sesion?.sesionId,
     });
     setAviso(
-      res.simulado || !sesion
-        ? {
-            titulo: 'Llamada (simulada)',
-            texto: 'Conecta tu WhatsApp en el inicio para recibir la llamada real de tu contador.',
-          }
-        : res.ok
-          ? {
-              titulo: 'Te estamos llamando',
-              texto: 'Tu contador virtual te marca en unos segundos.',
-            }
-          : {
-              titulo: 'No pudimos llamar',
-              texto: res.mensaje ?? 'Intenta de nuevo en un momento.',
-            },
+      res.ok
+        ? { titulo: 'Te estamos llamando', texto: 'Tu contador virtual te marca en unos segundos.' }
+        : { titulo: 'No pudimos llamar', texto: res.mensaje ?? 'Intenta de nuevo en un momento.' },
     );
   }
 
   async function recordatorio(tipo: 'dia10' | 'dia15' | 'dia17') {
     const textos = {
-      dia10: `Tu mes está listo: octubre suma ${totalTxt}. Vence el martes 17.`,
-      dia15: `Faltan 2 días para el 17. Tu declaración de octubre es de ${totalTxt}.`,
-      dia17: `Hoy vence tu declaración de octubre por ${totalTxt}. ¿La presentamos?`,
+      dia10: `Tu mes está listo. Octubre suma ${totalTxt} y vence el 17 de noviembre. ¿Lo presentamos?`,
+      dia15: `Faltan 2 días para el 17 de noviembre. Tu declaración de octubre es de ${totalTxt}.`,
+      dia17: `Hoy vence tu declaración de octubre por ${totalTxt}. Si quieres, la presento ahora y te mando la línea de captura.`,
     } as const;
+    if (!whatsappReal) {
+      void chat.recibir([{ tipo: 'texto', texto: textos[tipo] }]);
+      notificar(textos[tipo]);
+      return;
+    }
     const sesion = leerSesion();
     const res = await accionDemo('recordatorio', {
       persona: 'luis',
@@ -185,10 +208,11 @@ export function CasoB() {
       telefono: sesion?.telefono,
       sesionId: sesion?.sesionId,
     });
-    setAviso({
-      titulo: res.simulado ? 'Recordatorio (simulado)' : 'Recordatorio enviado',
-      texto: textos[tipo],
-    });
+    setAviso(
+      res.ok
+        ? { titulo: 'Recordatorio enviado', texto: 'Revisa tu WhatsApp.' }
+        : { titulo: 'No se envió', texto: res.mensaje ?? 'Conecta tu WhatsApp en el inicio.' },
+    );
   }
 
   return (

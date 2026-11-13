@@ -11,13 +11,15 @@
   },
   "dependencies": {
     "@contafly/ui": "workspace:*",
-    "next": "15.5.4",
+    "next": "15.5.29",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "@contafly/motor-fiscal": "workspace:*",
     "@contafly/datos-demo": "workspace:*",
     "@contafly/documentos": "workspace:*",
-    "bwip-js": "4.7.0"
+    "bwip-js": "4.7.0",
+    "@contafly/agente": "workspace:*",
+    "@anthropic-ai/sdk": "1.8.0"
   },
   "devDependencies": {
     "@types/node": "22.18.8",

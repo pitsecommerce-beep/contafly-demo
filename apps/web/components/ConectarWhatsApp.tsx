@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 import { accionDemo } from '../lib/api';
+import { useChat } from '../lib/chat';
+import { useDemo } from '../lib/contexto';
 import {
   aE164,
   borrarSesion,
@@ -20,6 +22,38 @@ export interface ConfigWhatsApp {
 }
 
 export function ConectarWhatsApp({ config }: { config: ConfigWhatsApp }) {
+  const { whatsappReal } = useDemo();
+  return whatsappReal ? <ConectarReal config={config} /> : <WhatsAppDeLaDemo />;
+}
+
+/** Sin Twilio: la conversación ocurre en el WhatsApp simulado de la propia web. */
+function WhatsAppDeLaDemo() {
+  const { setAbierto, llamar } = useChat();
+  return (
+    <div className="tarjeta pila">
+      <h2 className="subtitulo">Habla con tu contador</h2>
+      <p className="texto-mid" style={{ margin: 0 }}>
+        En esta demo, WhatsApp y las llamadas pasan dentro de la página. En computadora lo ves a la
+        derecha; en el celular, con el botón verde. No necesitas dar tu número.
+      </p>
+      <div className="opciones">
+        <button
+          type="button"
+          className="boton"
+          style={{ flex: 1 }}
+          onClick={() => setAbierto(true)}
+        >
+          Abrir WhatsApp
+        </button>
+        <button type="button" className="boton boton-sec" style={{ flex: 1 }} onClick={llamar}>
+          Que me llame
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ConectarReal({ config }: { config: ConfigWhatsApp }) {
   const idAyuda = useId();
   const [sesion, setSesion] = useState<SesionLocal | null>(null);
   const [telefono, setTelefono] = useState('');

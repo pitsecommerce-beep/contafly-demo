@@ -17,10 +17,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
   },
   "devDependencies": {
     "typescript": "5.9.3",
     "vitest": "3.2.4"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.8.0",
+    "@contafly/motor-fiscal": "workspace:*",
+    "@contafly/datos-demo": "workspace:*"
   }
 }
