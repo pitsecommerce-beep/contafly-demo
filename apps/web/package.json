@@ -13,7 +13,11 @@
     "@contafly/ui": "workspace:*",
     "next": "15.5.4",
     "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "react-dom": "19.1.1",
+    "@contafly/motor-fiscal": "workspace:*",
+    "@contafly/datos-demo": "workspace:*",
+    "@contafly/documentos": "workspace:*",
+    "bwip-js": "4.7.0"
   },
   "devDependencies": {
     "@types/node": "22.18.8",
