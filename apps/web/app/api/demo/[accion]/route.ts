@@ -15,12 +15,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ accion:
   try {
     const r = await fetch(`${api.replace(/\/$/, '')}/demo/${accion}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        ...(process.env.DEMO_API_TOKEN ? { 'x-demo-token': process.env.DEMO_API_TOKEN } : {}),
+      },
       body: await req.text(),
       signal: AbortSignal.timeout(15_000),
     });
     const datos = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-    return NextResponse.json({ ok: r.ok, simulado: false, ...datos }, { status: r.ok ? 200 : 502 });
+    // Se devuelve 200 para que la web muestre el mensaje del servicio
+    return NextResponse.json({ ...datos, ok: r.ok, simulado: datos.simulado === true });
   } catch {
     return NextResponse.json(
       { ok: false, simulado: false, mensaje: 'No se pudo contactar al servicio' },

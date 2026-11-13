@@ -136,11 +136,22 @@ export function CasoB() {
         telefono: sesion?.telefono,
         sesionId: sesion?.sesionId,
       }).then((res) => {
+        const texto = `Listo, presentamos tu declaración de octubre. Aquí está tu línea de captura por ${totalTxt}. Págala en tu banco cuando quieras, antes del 17 de noviembre.`;
+        if (!res.simulado && !res.ok) {
+          setAviso({
+            titulo: 'No llegó a tu WhatsApp',
+            texto:
+              res.mensaje ?? 'Conecta tu WhatsApp en el inicio para recibir la línea de captura.',
+          });
+          return;
+        }
         // Sin api configurada mostramos el mensaje en pantalla, como llegaría a WhatsApp.
         despues(res.simulado ? 900 : 0, () =>
           setAviso({
-            titulo: res.simulado ? 'WhatsApp (simulado)' : 'Contafly en WhatsApp',
-            texto: `Listo, presentamos tu declaración de octubre. Aquí está tu línea de captura por ${totalTxt}. Págala en tu banco cuando quieras, antes del 17 de noviembre.`,
+            titulo: res.simulado ? 'WhatsApp (simulado)' : 'Te llegó a WhatsApp',
+            texto: res.simulado
+              ? texto
+              : 'Revisa tu WhatsApp: ahí están tu PDF y tu línea de captura.',
           }),
         );
       });

@@ -438,7 +438,12 @@ function Plan({
           sesionId: s?.sesionId,
         }).then((res) =>
           setAviso(
-            `${res.simulado ? '(Simulado) ' : ''}Listo, ya estás al corriente. Te mandamos ${meses.length} líneas de captura por ${f(suma)} en total, más recargos y actualización.`,
+            res.simulado
+              ? `(Simulado) Listo, ya estás al corriente. Te mandamos ${meses.length} líneas de captura por ${f(suma)} en total, más recargos y actualización.`
+              : res.ok
+                ? 'Revisa tu WhatsApp: ahí están tus líneas de captura.'
+                : (res.mensaje ??
+                  'Conecta tu WhatsApp en el inicio para recibir tus líneas de captura.'),
           ),
         );
       },
